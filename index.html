@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>학원 수강료 관리 시스템</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <header class="header">
+            <h1>📚 학원 수강료 관리 시스템</h1>
+            <div class="academy-name-section">
+                <input type="text" id="academyName" placeholder="학원명을 입력하세요" />
+                <button onclick="saveAcademyName()">저장</button>
+            </div>
+        </header>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="tabs">
+            <button class="tab-button active" onclick="showTab('dashboard')">📊 대시보드</button>
+            <button class="tab-button" onclick="showTab('students')">👨‍🎓 학생 관리</button>
+            <button class="tab-button" onclick="showTab('classes')">🏫 반 관리</button>
+            <button class="tab-button" onclick="showTab('payments')">💰 납부 관리</button>
+            <button class="tab-button" onclick="showTab('reports')">📈 리포트</button>
+        </nav>
+
+        <!-- 대시보드 탭 -->
+        <div id="dashboard" class="tab-content active">
+            <div class="dashboard-grid">
+                <div class="stat-card">
+                    <h3>총 학생 수</h3>
+                    <p class="stat-number" id="totalStudents">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>이번 달 예상 수입</h3>
+                    <p class="stat-number" id="expectedRevenue">0원</p>
+                </div>
+                <div class="stat-card">
+                    <h3>납부 완료</h3>
+                    <p class="stat-number" id="paidStudents">0명</p>
+                </div>
+                <div class="stat-card">
+                    <h3>미납</h3>
+                    <p class="stat-number" id="unpaidStudents">0명</p>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h3>월별 수강료 현황</h3>
+                <canvas id="monthlyChart"></canvas>
+            </div>
+
+            <div class="recent-activities">
+                <h3>최근 납부 내역</h3>
+                <div id="recentPayments"></div>
+            </div>
+        </div>
+
+        <!-- 학생 관리 탭 -->
+        <div id="students" class="tab-content">
+            <div class="action-bar">
+                <button class="btn-primary" onclick="showStudentModal()">+ 학생 추가</button>
+                <button class="btn-secondary" onclick="importStudentsCSV()">📥 CSV 가져오기</button>
+                <button class="btn-secondary" onclick="exportStudentsCSV()">📤 CSV 내보내기</button>
+            </div>
+
+            <div class="search-bar">
+                <input type="text" id="studentSearch" placeholder="학생 검색..." onkeyup="filterStudents()">
+            </div>
+
+            <div class="table-container">
+                <table id="studentsTable">
+                    <thead>
+                        <tr>
+                            <th>학생명</th>
+                            <th>반</th>
+                            <th>기본 수강료</th>
+                            <th>형제 그룹</th>
+                            <th>연락처</th>
+                            <th>등록일</th>
+                            <th>작업</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentsTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 반 관리 탭 -->
+        <div id="classes" class="tab-content">
+            <div class="action-bar">
+                <button class="btn-primary" onclick="showClassModal()">+ 반 추가</button>
+            </div>
+
+            <div class="classes-grid" id="classesGrid"></div>
+        </div>
+
+        <!-- 납부 관리 탭 -->
+        <div id="payments" class="tab-content">
+            <div class="action-bar">
+                <select id="paymentMonth" onchange="loadPayments()">
+                    <option value="">월 선택</option>
+                </select>
+                <button class="btn-primary" onclick="generateMonthlyBill()">월별 내역 생성</button>
+                <button class="btn-secondary" onclick="exportPaymentsExcel()">📤 엑셀 다운로드</button>
+            </div>
+
+            <div class="table-container">
+                <table id="paymentsTable">
+                    <thead>
+                        <tr>
+                            <th>학생명</th>
+                            <th>반</th>
+                            <th>기본수강료</th>
+                            <th>형제할인</th>
+                            <th>개별할인</th>
+                            <th>교재비</th>
+                            <th>납부총액</th>
+                            <th>납부여부</th>
+                            <th>납부일</th>
+                            <th>비고</th>
+                            <th>작업</th>
+                        </tr>
+                    </thead>
+                    <tbody id="paymentsTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 리포트 탭 -->
+        <div id="reports" class="tab-content">
+            <div class="report-filters">
+                <label>기간 선택:
+                    <input type="month" id="reportStartMonth">
+                    ~
+                    <input type="month" id="reportEndMonth">
+                </label>
+                <button class="btn-primary" onclick="generateReport()">리포트 생성</button>
+                <button class="btn-secondary" onclick="exportReportPDF()">📄 PDF 다운로드</button>
+            </div>
+
+            <div id="reportContent">
+                <div class="report-summary">
+                    <h3>기간별 요약</h3>
+                    <div id="reportSummary"></div>
+                </div>
+
+                <div class="report-charts">
+                    <canvas id="reportChart"></canvas>
+                </div>
+
+                <div class="report-details">
+                    <h3>상세 내역</h3>
+                    <table id="reportTable">
+                        <thead>
+                            <tr>
+                                <th>월</th>
+                                <th>총 수강료</th>
+                                <th>할인 총액</th>
+                                <th>실제 수입</th>
+                                <th>납부율</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 학생 추가/수정 모달 -->
+    <div id="studentModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('studentModal')">&times;</span>
+            <h2 id="studentModalTitle">학생 추가</h2>
+            <form id="studentForm" onsubmit="saveStudent(event)">
+                <input type="hidden" id="studentId">
+                
+                <label>학생명 *</label>
+                <input type="text" id="studentName" required>
+                
+                <label>반 *</label>
+                <select id="studentClass" required></select>
+                
+                <label>기본 수강료 *</label>
+                <input type="number" id="studentFee" required min="0">
+                
+                <label>형제 그룹 ID</label>
+                <input type="text" id="siblingGroup" placeholder="형제가 있을 경우 동일한 ID 입력">
+                
+                <label>연락처</label>
+                <input type="tel" id="studentPhone" placeholder="010-1234-5678">
+                
+                <label>등록일</label>
+                <input type="date" id="registrationDate" value="">
+                
+                <label>비고</label>
+                <textarea id="studentNotes" rows="3"></textarea>
+                
+                <div class="modal-buttons">
+                    <button type="submit" class="btn-primary">저장</button>
+                    <button type="button" class="btn-secondary" onclick="closeModal('studentModal')">취소</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 반 추가/수정 모달 -->
+    <div id="classModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('classModal')">&times;</span>
+            <h2 id="classModalTitle">반 추가</h2>
+            <form id="classForm" onsubmit="saveClass(event)">
+                <input type="hidden" id="classId">
+                
+                <label>반 이름 *</label>
+                <input type="text" id="className" required>
+                
+                <label>기본 수강료 *</label>
+                <input type="number" id="classDefaultFee" required min="0">
+                
+                <label>요일</label>
+                <input type="text" id="classSchedule" placeholder="월, 수, 금">
+                
+                <label>시간</label>
+                <input type="text" id="classTime" placeholder="16:00 - 18:00">
+                
+                <label>정원</label>
+                <input type="number" id="classCapacity" min="1">
+                
+                <label>비고</label>
+                <textarea id="classNotes" rows="3"></textarea>
+                
+                <div class="modal-buttons">
+                    <button type="submit" class="btn-primary">저장</button>
+                    <button type="button" class="btn-secondary" onclick="closeModal('classModal')">취소</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CSV 가져오기 모달 -->
+    <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="handleCSVImport(event)">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
