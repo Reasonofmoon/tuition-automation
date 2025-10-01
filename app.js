@@ -850,11 +850,27 @@ function importStudentsCSV() {
 function handleCSVImport(event) {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     const reader = new FileReader();
     reader.onload = function(e) {
-        const text = e.target.result;
-        const lines = text.split('\n');
+        const buffer = e.target.result;
+        const uint8 = new Uint8Array(buffer);
+        
+        let text;
+        // UTF-8 BOM Check
+        if (uint8[0] === 0xEF && uint8[1] === 0xBB && uint8[2] === 0xBF) {
+            text = new TextDecoder('utf-8').decode(uint8.slice(3));
+        } else {
+            // EUC-KR (CP949)로 디코딩 시도
+            try {
+                text = cptable.utils.decode(949, uint8);
+            } catch (err) {
+                // 실패 시 UTF-8로 가정
+                text = new TextDecoder('utf-8').decode(uint8);
+            }
+        }
+
+        const lines = text.split(/\r?\n/);
         
         // 헤더 제거
         lines.shift();
@@ -883,7 +899,7 @@ function handleCSVImport(event) {
         }
     };
     
-    reader.readAsText(file, 'UTF-8');
+    reader.readAsArrayBuffer(file);
     event.target.value = ''; // 리셋
 }
 
